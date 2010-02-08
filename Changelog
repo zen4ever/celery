@@ -10,9 +10,12 @@ Change history
   bugs related to it. Instead, use something like start-stop-daemon,
   supervisord or launchd (os x).
 
+
 * Make sure logger class is process aware, even if running Python >= 2.6.
 
+
 * Error e-mails are not sent anymore when the task is retried.
+
 
 0.8.3 [2009-12-22 09:43 A.M CEST]
 ---------------------------------
@@ -79,7 +82,7 @@ development servers before rolling it out to production!
 **CHANGES**
 
 * Incorporated the multiprocessing backport patch that fixes the
-``processName`` error.
+  ``processName`` error.
 
 * Ignore the result of PeriodicTask's by default.
 
