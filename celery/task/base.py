@@ -76,6 +76,26 @@ class Task(object):
         however if you want a periodic task, you should subclass
         :class:`PeriodicTask` instead.
 
+    .. attribute:: queue
+
+        Name of queue in ``CELERY_QUEUES`` used for default routing settings.
+        If ``CELERY_QUEUES`` is defined as the following::
+
+            .. code-block:: python
+
+            CELERY_QUEUES = {"video": {
+                                "exchange": "media",
+                                "exchange_type": "topic",
+                                "binding_key": "media.video.#",
+                            }}
+
+        Setting :attr:`queue` to ``"video"``, will use those settings,
+        except for ``binding_key``, as defaults when applying tasks, i.e.:
+
+            >>> Task.apply_async(args, kwargs, exchange="media",
+                                 exchange_type="topic")
+
+
     .. attribute:: routing_key
 
         Override the global default ``routing_key`` for this task.
@@ -152,12 +172,14 @@ class Task(object):
     abstract = True
     autoregister = True
     type = "regular"
+    queue = None
     exchange = None
     routing_key = None
     immediate = False
     mandatory = False
     priority = None
     ignore_result = conf.IGNORE_RESULT
+    exchange_type = conf.DEFAULT_EXCHANGE_TYPE
     disable_error_emails = False
     max_retries = 3
     default_retry_delay = 3 * 60
@@ -165,7 +187,6 @@ class Task(object):
     rate_limit = conf.DEFAULT_RATE_LIMIT
     rate_limit_queue_type = Queue
     backend = default_backend
-    exchange_type = conf.DEFAULT_EXCHANGE_TYPE
 
     MaxRetriesExceededError = MaxRetriesExceededError
 

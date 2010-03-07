@@ -3,16 +3,20 @@
 Sending and Receiving Messages
 
 """
+import re
 import socket
 from datetime import datetime, timedelta
 
 from carrot.connection import DjangoBrokerConnection
 from carrot.messaging import Publisher, Consumer, ConsumerSet
-from billiard.utils.functional import wraps
+from billiard.utils.functional import wraps, curry
 
 from celery import conf
 from celery import signals
 from celery.utils import gen_unique_id, mitemgetter, noop
+
+
+TERMS_TO_FORMAT = curry(re.compile(r"\.[\#\*]").sub, ".%s")
 
 
 MSG_OPTIONS = ("mandatory", "priority",
@@ -32,6 +36,15 @@ class TaskPublisher(Publisher):
     exchange_type = default_queue["exchange_type"]
     routing_key = conf.DEFAULT_ROUTING_KEY
     serializer = conf.TASK_SERIALIZER
+    queues = conf.routing_table
+
+    def get_queue_config(self, name):
+        config = dict(self.queues[name])
+        config.pop("binding_key", None)
+        return config
+
+    def use_terms(self, rkey, terms):
+        return TERMS_TO_FORMAT(rkey) % terms
 
     def __init__(self, *args, **kwargs):
         super(TaskPublisher, self).__init__(*args, **kwargs)
@@ -44,10 +57,14 @@ class TaskPublisher(Publisher):
             _queues_declared = True
 
     def delay_task(self, task_name, task_args=None, task_kwargs=None,
-            countdown=None, eta=None, task_id=None, taskset_id=None, **kwargs):
+            countdown=None, eta=None, task_id=None, taskset_id=None,
+            queue=None, terms=None, **kwargs):
         """Delay task for execution by the celery nodes."""
 
         task_id = task_id or gen_unique_id()
+
+        if queue:
+            kwargs = dict(kwargs, **self.get_queue_config(queue))
 
         if countdown: # Convert countdown to ETA.
             eta = datetime.now() + timedelta(seconds=countdown)
@@ -63,6 +80,10 @@ class TaskPublisher(Publisher):
 
         if taskset_id:
             message_data["taskset"] = taskset_id
+
+        if terms is not None:
+            kwargs["routing_key"] = self.as_terms(kwargs.get("routing_key"),
+                                                  terms)
 
         self.send(message_data, **extract_msg_options(kwargs))
         signals.task_sent.send(sender=task_name, **message_data)

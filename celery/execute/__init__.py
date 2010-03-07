@@ -6,7 +6,7 @@ from celery.registry import tasks
 from celery.messaging import with_connection
 from celery.messaging import TaskPublisher
 
-extract_exec_options = mattrgetter("routing_key", "exchange",
+extract_exec_options = mattrgetter("queue", "routing_key", "exchange",
                                    "immediate", "mandatory",
                                    "priority", "serializer")
 
