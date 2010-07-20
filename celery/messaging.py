@@ -7,8 +7,8 @@ import socket
 from datetime import datetime, timedelta
 from itertools import count
 
-from carrot.connection import BrokerConnection
-from carrot.messaging import Publisher, Consumer, ConsumerSet as _ConsumerSet
+from kombu.connection import BrokerConnection
+from kombu.compat import Publisher, Consumer, ConsumerSet
 
 from celery import conf
 from celery import signals
@@ -82,35 +82,6 @@ class TaskPublisher(Publisher):
         signals.task_sent.send(sender=task_name, **message_data)
 
         return task_id
-
-
-class ConsumerSet(_ConsumerSet):
-    """ConsumerSet with an optional decode error callback.
-
-    For more information see :class:`carrot.messaging.ConsumerSet`.
-
-    .. attribute:: on_decode_error
-
-        Callback called if a message had decoding errors.
-        The callback is called with the signature::
-
-            callback(message, exception)
-
-    """
-    on_decode_error = None
-
-    def _receive_callback(self, raw_message):
-        message = self.backend.message_to_python(raw_message)
-        if self.auto_ack and not message.acknowledged:
-            message.ack()
-        try:
-            decoded = message.decode()
-        except Exception, exc:
-            if self.on_decode_error:
-                return self.on_decode_error(message, exc)
-            else:
-                raise
-        self.receive(decoded, message)
 
 
 class TaskConsumer(Consumer):
