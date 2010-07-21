@@ -12,7 +12,7 @@ try:
 except ImportError:
     from celery.tests.utils import fallback_contextmanager as contextmanager
 
-from carrot.utils import rpartition
+from kombu.utils import rpartition
 
 from celery.log import (setup_logger, emergency_error,
                         redirect_stdouts_to_logger, LoggingProxy)

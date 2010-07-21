@@ -152,7 +152,7 @@ class Task(object):
     .. attribute:: serializer
 
         The name of a serializer that has been registered with
-        :mod:`carrot.serialization.registry`. Example: ``"json"``.
+        :mod:`kombu.serialization.registry`. Example: ``"json"``.
 
     .. attribute:: backend
 

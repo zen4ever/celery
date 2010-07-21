@@ -6,7 +6,7 @@ QUEUE_FORMAT = """
 . %(name)s -> exchange:%(exchange)s (%(exchange_type)s) \
 binding:%(binding_key)s
 """
-BROKER_FORMAT = "%(carrot_backend)s://%(userid)s@%(host)s%(port)s%(vhost)s"
+BROKER_FORMAT = "%(kombu_backend)s://%(userid)s@%(host)s%(port)s%(vhost)s"
 
 TIME_UNITS = (("day", 60 * 60 * 24, lambda n: int(math.ceil(n))),
               ("hour", 60 * 60, lambda n: int(math.ceil(n))),
@@ -41,10 +41,10 @@ def format_queues(queues, indent=0):
 def get_broker_info():
     broker_connection = establish_connection()
 
-    carrot_backend = broker_connection.backend_cls
-    if carrot_backend and not isinstance(carrot_backend, str):
-        carrot_backend = carrot_backend.__name__
-    carrot_backend = carrot_backend or "amqp"
+    kombu_backend = broker_connection.backend_cls
+    if kombu_backend and not isinstance(kombu_backend, str):
+        kombu_backend = kombu_backend.__name__
+    kombu_backend = kombu_backend or "amqp"
 
     port = broker_connection.port or \
                 broker_connection.get_backend_cls().default_port
@@ -54,7 +54,7 @@ def get_broker_info():
     if not vhost.startswith("/"):
         vhost = "/" + vhost
 
-    return {"carrot_backend": carrot_backend,
+    return {"kombu_backend": kombu_backend,
             "userid": broker_connection.userid,
             "host": broker_connection.hostname,
             "port": port,

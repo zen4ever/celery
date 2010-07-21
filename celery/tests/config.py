@@ -1,4 +1,9 @@
-CARROT_BACKEND = "memory"
+BROKER_BACKEND = "memory"
+
+BROKER_HOST = "localhost"
+BROKER_USER = "guest"
+BROKER_PASSWORD = "guest"
+BROKER_VHOST = "/"
 
 
 CELERY_RESULT_BACKEND = "database"

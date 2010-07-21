@@ -6,7 +6,7 @@ import unittest2 as unittest
 
 from StringIO import StringIO
 
-from carrot.backends.base import BaseMessage
+from kombu.backends.base import BaseMessage
 
 from celery import states
 from celery.backends import default_backend
@@ -339,7 +339,7 @@ class test_TaskRequest(unittest.TestCase):
     def test_from_message(self):
         body = {"task": mytask.name, "id": gen_unique_id(),
                 "args": [2], "kwargs": {u"æØåveéðƒeæ": "bar"}}
-        m = BaseMessage(body=simplejson.dumps(body), backend="foo",
+        m = BaseMessage(None, body=simplejson.dumps(body), backend="foo",
                         content_type="application/json",
                         content_encoding="utf-8")
         tw = TaskRequest.from_message(m, m.decode())
@@ -355,7 +355,7 @@ class test_TaskRequest(unittest.TestCase):
     def test_from_message_nonexistant_task(self):
         body = {"task": "cu.mytask.doesnotexist", "id": gen_unique_id(),
                 "args": [2], "kwargs": {u"æØåveéðƒeæ": "bar"}}
-        m = BaseMessage(body=simplejson.dumps(body), backend="foo",
+        m = BaseMessage(None, body=simplejson.dumps(body), backend="foo",
                         content_type="application/json",
                         content_encoding="utf-8")
         self.assertRaises(NotRegistered, TaskRequest.from_message,

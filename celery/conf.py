@@ -194,7 +194,9 @@ BROKER_CONNECTION_RETRY = _get("BROKER_CONNECTION_RETRY",
                                 compat=["CELERY_BROKER_CONNECTION_RETRY"])
 BROKER_CONNECTION_MAX_RETRIES = _get("BROKER_CONNECTION_MAX_RETRIES",
                             compat=["CELERY_BROKER_CONNECTION_MAX_RETRIES"])
-BROKER_BACKEND = _get("BROKER_BACKEND") or _get("CARROT_BACKEND")
+BROKER_BACKEND = _get("BROKER_BACKEND") or \
+                        _get("KOMBU_BACKEND") or \
+                            _get("CARROT_BACKEND")
 
 # <--- Message routing                             <-   --   --- - ----- -- #
 DEFAULT_QUEUE = _get("CELERY_DEFAULT_QUEUE")
@@ -242,7 +244,7 @@ CELERYMON_LOG_FILE = _get("CELERYMON_LOG_FILE")
 
 def _init_queues(queues):
     """Convert configuration mapping to a table of queues digestible
-    by a :class:`carrot.messaging.ConsumerSet`."""
+    by a :class:`kombu.compat.ConsumerSet`."""
 
     def _defaults(opts):
         opts.setdefault("exchange", DEFAULT_EXCHANGE),

@@ -9,7 +9,7 @@ from datetime import datetime
 from textwrap import wrap
 from itertools import count
 
-from carrot.utils import rpartition
+from kombu.utils import rpartition
 
 import celery
 from celery import states

@@ -22,11 +22,11 @@ up and running.
 
   Both the task consumer and the broadcast consumer uses the same
   callback: :meth:`~CarrotListener.receive_message`.
-  The reason is that some carrot backends doesn't support consuming
+  The reason is that some kombu backends doesn't support consuming
   from several channels simultaneously, so we use a little nasty trick
   (:meth:`~CarrotListener._detect_wait_method`) to select the best
   possible channel distribution depending on the functionality supported
-  by the carrot backend.
+  by the kombu backend.
 
 * So for each message received the :meth:`~CarrotListener.receive_message`
   method is called, this checks the payload of the message for either
@@ -81,7 +81,6 @@ import warnings
 from datetime import datetime
 
 from dateutil.parser import parse as parse_iso8601
-from carrot.connection import AMQPConnectionException
 
 from celery import conf
 from celery.utils import noop, retry_over_time
@@ -103,7 +102,7 @@ class QoS(object):
 
     For thread-safe increment/decrement of a channels prefetch count value.
 
-    :param consumer: A :class:`carrot.messaging.Consumer` instance.
+    :param consumer: A :class:`kombu.messaging.Consumer` instance.
     :param initial_value: Initial prefetch count value.
     :param logger: Logger used to log debug messages.
 
@@ -234,7 +233,7 @@ class CarrotListener(object):
             self.reset_connection()
             try:
                 self.consume_messages()
-            except (socket.error, AMQPConnectionException, IOError):
+            except self.connection.connection_errors:
                 self.logger.error("CarrotListener: Connection to broker lost."
                                 + " Trying to re-establish connection...")
 
@@ -411,16 +410,17 @@ class CarrotListener(object):
             self.logger.error("CarrotListener: Connection Error: %s. " % exc
                      + "Trying again in %d seconds..." % interval)
 
+        conn = establish_connection()
+
         def _establish_connection():
             """Establish a connection to the broker."""
-            conn = establish_connection()
             conn.connect() # Connection is established lazily, so connect.
             return conn
 
         if not conf.BROKER_CONNECTION_RETRY:
             return _establish_connection()
 
-        conn = retry_over_time(_establish_connection, (socket.error, IOError),
+        conn = retry_over_time(_establish_connection, conn.connection_errors,
                                errback=_connection_error_handler,
                                max_retries=conf.BROKER_CONNECTION_MAX_RETRIES)
         return conn

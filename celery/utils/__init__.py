@@ -11,7 +11,7 @@ from uuid import UUID, uuid4, _uuid_generate_random
 from inspect import getargspec
 from itertools import islice
 
-from carrot.utils import rpartition
+from kombu.utils import rpartition
 
 from celery.utils.compat import all, any, defaultdict
 from celery.utils.timeutils import timedelta_seconds # was here before

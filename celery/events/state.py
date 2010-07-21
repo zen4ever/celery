@@ -1,7 +1,7 @@
 import time
 import heapq
 
-from carrot.utils import partition
+from kombu.utils import partition
 
 from celery import states
 from celery.datastructures import AttributeDict, LocalCache

@@ -223,22 +223,15 @@ def with_connection(fun):
     return _inner
 
 
-def get_consumer_set(connection, queues=None, **options):
-    """Get the :class:`carrot.messaging.ConsumerSet`` for a queue
+def get_consumer_set(connection, queues=None, **kwargs):
+    """Get the :class:`kombu.compat.ConsumerSet`` for a queue
     configuration.
 
     Defaults to the queues in ``CELERY_QUEUES``.
 
     """
-    queues = queues or conf.get_queues()
-    cset = ConsumerSet(connection)
-    for queue_name, queue_options in queues.items():
-        queue_options = dict(queue_options)
-        queue_options["routing_key"] = queue_options.pop("binding_key", None)
-        consumer = Consumer(connection, queue=queue_name,
-                            backend=cset.backend, **queue_options)
-        cset.consumers.append(consumer)
-    return cset
+    return ConsumerSet(connection, from_dict=queues or conf.get_queues(),
+                       **kwargs)
 
 
 @with_connection

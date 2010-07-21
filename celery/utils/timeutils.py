@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from carrot.utils import partition
+from kombu.utils import partition
 
 DAYNAMES = "sun", "mon", "tue", "wed", "thu", "fri", "sat"
 WEEKDAYS = dict((name, dow) for name, dow in zip(DAYNAMES, range(7)))

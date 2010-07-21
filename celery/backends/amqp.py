@@ -4,7 +4,7 @@ import time
 
 from datetime import timedelta
 
-from carrot.messaging import Consumer, Publisher
+from kombu.compat import Consumer, Publisher
 
 from celery import conf
 from celery import states

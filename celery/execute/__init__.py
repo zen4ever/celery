@@ -72,7 +72,7 @@ def apply_async(task, args=None, kwargs=None, countdown=None, eta=None,
       method to use. Defaults to the ``CELERY_TASK_SERIALIZER`` setting.
       Can be ``pickle`` ``json``, ``yaml``, or any custom serialization
       methods that have been registered with
-      :mod:`carrot.serialization.registry`. Defaults to the tasks
+      :mod:`kombu.serialization.registry`. Defaults to the tasks
       :attr:`~celery.task.base.Task.serializer` attribute.
 
     **Note**: If the ``CELERY_ALWAYS_EAGER`` setting is set, it will be

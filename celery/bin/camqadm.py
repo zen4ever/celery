@@ -12,7 +12,7 @@ import optparse
 from itertools import count
 
 from amqplib import client_0_8 as amqp
-from carrot.utils import partition
+from kombu.utils import partition
 
 from celery.utils import info
 from celery.utils import padlist

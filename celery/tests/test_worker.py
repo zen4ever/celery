@@ -5,8 +5,8 @@ from datetime import datetime, timedelta
 from multiprocessing import get_logger
 from Queue import Empty
 
-from carrot.backends.base import BaseMessage
-from carrot.connection import BrokerConnection
+from kombu.backends.base import BaseMessage
+from kombu.connection import BrokerConnection
 
 from celery import conf
 from celery.decorators import task as task_dec
@@ -83,7 +83,7 @@ class MockLogger(object):
 class MockBackend(object):
     _acked = False
 
-    def ack(self, delivery_tag):
+    def basic_ack(self, delivery_tag):
         self._acked = True
 
 
@@ -424,6 +424,7 @@ class test_CarrotListener(unittest.TestCase):
         l = _Listener(self.ready_queue, self.eta_schedule, self.logger,
                       send_events=False, init_callback=init_callback)
         l.qos = _QoS()
+        l.connection = BrokerConnection()
 
         def raises_KeyError(limit=None):
             yield True
@@ -439,6 +440,7 @@ class test_CarrotListener(unittest.TestCase):
         l = _Listener(self.ready_queue, self.eta_schedule, self.logger,
                       send_events=False, init_callback=init_callback)
         l.qos = _QoS()
+        l.connection = BrokerConnection()
         def raises_socket_error(limit=None):
             yield True
             l.iterations = 1

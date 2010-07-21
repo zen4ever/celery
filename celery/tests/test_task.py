@@ -372,12 +372,13 @@ class TestTaskSet(unittest.TestCase):
         ])
         self.assertEqual(ts.total, 9)
 
-
         consumer = IncrementCounterTask().get_consumer()
-        consumer.discard_all()
+        consumer.purge()
+        consumer.close()
         taskset_res = ts.apply_async()
         subtasks = taskset_res.subtasks
         taskset_id = taskset_res.taskset_id
+        consumer = IncrementCounterTask().get_consumer()
         for subtask in subtasks:
             m = consumer.fetch().payload
             self.assertDictContainsSubset({"taskset": taskset_id,
