@@ -218,6 +218,7 @@ class CarrotListener(object):
         self.control_dispatch = ControlDispatch(logger=logger,
                                                 hostname=self.hostname,
                                                 listener=self)
+        self.connection_errors = establish_connection().connection_errors
 
     def start(self):
         """Start the consumer.
@@ -233,7 +234,7 @@ class CarrotListener(object):
             self.reset_connection()
             try:
                 self.consume_messages()
-            except self.connection.connection_errors:
+            except self.connection_errors:
                 self.logger.error("CarrotListener: Connection to broker lost."
                                 + " Trying to re-establish connection...")
 
@@ -410,17 +411,16 @@ class CarrotListener(object):
             self.logger.error("CarrotListener: Connection Error: %s. " % exc
                      + "Trying again in %d seconds..." % interval)
 
-        conn = establish_connection()
-
         def _establish_connection():
             """Establish a connection to the broker."""
+            conn = establish_connection()
             conn.connect() # Connection is established lazily, so connect.
             return conn
 
         if not conf.BROKER_CONNECTION_RETRY:
             return _establish_connection()
 
-        conn = retry_over_time(_establish_connection, conn.connection_errors,
+        conn = retry_over_time(_establish_connection, self.connection_errors,
                                errback=_connection_error_handler,
                                max_retries=conf.BROKER_CONNECTION_MAX_RETRIES)
         return conn
