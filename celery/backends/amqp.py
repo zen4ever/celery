@@ -4,7 +4,8 @@ import time
 
 from datetime import timedelta
 
-from kombu.compat import Consumer, Publisher
+from kombu.entity import Exchange, Binding
+from kombu.messaging import Consumer, Producer
 
 from celery import conf
 from celery import states
@@ -12,36 +13,6 @@ from celery.backends.base import BaseDictBackend
 from celery.exceptions import TimeoutError
 from celery.messaging import establish_connection
 from celery.utils import timeutils
-
-
-class ResultPublisher(Publisher):
-    exchange = conf.RESULT_EXCHANGE
-    exchange_type = conf.RESULT_EXCHANGE_TYPE
-    delivery_mode = conf.RESULT_PERSISTENT and 2 or 1
-    serializer = conf.RESULT_SERIALIZER
-    durable = conf.RESULT_PERSISTENT
-    auto_delete = True
-
-    def __init__(self, connection, task_id, **kwargs):
-        super(ResultPublisher, self).__init__(connection,
-                        routing_key=task_id.replace("-", ""),
-                        **kwargs)
-
-
-class ResultConsumer(Consumer):
-    exchange = conf.RESULT_EXCHANGE
-    exchange_type = conf.RESULT_EXCHANGE_TYPE
-    durable = conf.RESULT_PERSISTENT
-    no_ack = True
-    auto_delete = True
-
-    def __init__(self, connection, task_id, expires=None, **kwargs):
-        routing_key = task_id.replace("-", "")
-        if expires is not None:
-            pass
-            #self.queue_arguments = {"x-expires": expires}
-        super(ResultConsumer, self).__init__(connection,
-                queue=routing_key, routing_key=routing_key, **kwargs)
 
 
 class AMQPBackend(BaseDictBackend):
@@ -55,45 +26,53 @@ class AMQPBackend(BaseDictBackend):
     """
 
     _connection = None
+    _channel = None
 
     def __init__(self, connection=None, exchange=None, exchange_type=None,
-            persistent=None, serializer=None, auto_delete=None,
+            persistent=None, serializer=None, auto_delete=True,
             expires=None, **kwargs):
         self._connection = connection
-        self.exchange = exchange
-        self.exchange_type = exchange_type
+        exchange = exchange or conf.RESULT_EXCHANGE
+        exchange_type = exchange_type or conf.RESULT_EXCHANGE_TYPE
+        if persistent is None:
+            persistent = conf.RESULT_PERSISTENT
+        delivery_mode = persistent and "persistent" or "transient"
+        self.exchange = Exchange(name=exchange,
+                                 type=exchange_type,
+                                 delivery_mode=delivery_mode,
+                                 auto_delete=auto_delete)
         self.persistent = persistent
-        self.serializer = serializer
         self.auto_delete = auto_delete
         self.expires = expires
+        self.serializer = serializer or conf.RESULT_SERIALIZER
         if self.expires is None:
             self.expires = conf.TASK_RESULT_EXPIRES
         if isinstance(self.expires, timedelta):
             self.expires = timeutils.timedelta_seconds(self.expires)
         if self.expires is not None:
             self.expires = int(self.expires)
+
         super(AMQPBackend, self).__init__(**kwargs)
 
-    def _create_publisher(self, task_id, connection):
-        delivery_mode = self.persistent and 2 or 1
+    def _create_binding(self, task_id):
+        name = task_id.replace("-", "")
+        return Binding(name=name,
+                       exchange=self.exchange,
+                       routing_key=name,
+                       durable=self.persistent,
+                       auto_delete=self.auto_delete)
 
-        # Declares the queue.
-        self._create_consumer(task_id, connection).close()
+    def _create_producer(self, task_id):
+        binding = self._create_binding(task_id)
+        binding(self.channel).declare()
 
-        return ResultPublisher(connection, task_id,
-                               exchange=self.exchange,
-                               exchange_type=self.exchange_type,
-                               delivery_mode=delivery_mode,
-                               serializer=self.serializer,
-                               auto_delete=self.auto_delete)
+        return Producer(self.channel, exchange=self.exchange,
+                        routing_key=task_id.replace("-", ""),
+                        serializer=self.serializer)
 
-    def _create_consumer(self, task_id, connection):
-        return ResultConsumer(connection, task_id,
-                              exchange=self.exchange,
-                              exchange_type=self.exchange_type,
-                              durable=self.persistent,
-                              auto_delete=self.auto_delete,
-                              expires=self.expires)
+    def _create_consumer(self, task_id):
+        binding = self._create_binding(task_id)
+        return Consumer(self.channel, binding, no_ack=True)
 
     def store_result(self, task_id, result, status, traceback=None):
         """Send task return value and status."""
@@ -104,11 +83,7 @@ class AMQPBackend(BaseDictBackend):
                 "status": status,
                 "traceback": traceback}
 
-        publisher = self._create_publisher(task_id, self.connection)
-        try:
-            publisher.send(meta)
-        finally:
-            publisher.close()
+        self._create_producer(task_id).publish(meta)
 
         return result
 
@@ -130,21 +105,18 @@ class AMQPBackend(BaseDictBackend):
             raise self.exception_to_python(meta["result"])
 
     def poll(self, task_id):
-        consumer = self._create_consumer(task_id, self.connection)
-        result = consumer.fetch()
-        try:
-            if result:
-                payload = self._cache[task_id] = result.payload
-                return payload
-            else:
+        binding = self._create_binding(task_id)(self.channel)
+        result = binding.get()
+        if result:
+            payload = self._cache[task_id] = result.payload
+            return payload
+        else:
 
-                # Use previously received status if any.
-                if task_id in self._cache:
-                    return self._cache[task_id]
+            # Use previously received status if any.
+            if task_id in self._cache:
+                return self._cache[task_id]
 
-                return {"status": states.PENDING, "result": None}
-        finally:
-            consumer.close()
+            return {"status": states.PENDING, "result": None}
 
     def consume(self, task_id, timeout=None):
         results = []
@@ -153,7 +125,7 @@ class AMQPBackend(BaseDictBackend):
             results.append(message_data)
 
         wait = self.connection.drain_events
-        consumer = self._create_consumer(task_id, self.connection)
+        consumer = self._create_consumer(task_id)
         consumer.register_callback(callback)
 
         consumer.consume()
@@ -168,12 +140,14 @@ class AMQPBackend(BaseDictBackend):
                     # Got event on the wanted channel.
                     break
         finally:
-            consumer.close()
+            consumer.cancel()
 
         self._cache[task_id] = results[0]
         return results[0]
 
     def close(self):
+        if self._channel is not None:
+            self._channel.close()
         if self._connection is not None:
             self._connection.close()
 
@@ -182,6 +156,12 @@ class AMQPBackend(BaseDictBackend):
         if not self._connection:
             self._connection = establish_connection()
         return self._connection
+
+    @property
+    def channel(self):
+        if not self._channel:
+            self._channel = self.connection.channel()
+        return self._channel
 
     def reload_task_result(self, task_id):
         raise NotImplementedError(
