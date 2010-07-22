@@ -392,8 +392,8 @@ class CarrotListener(object):
     def _detect_wait_method(self):
         if hasattr(self.connection.connection, "drain_events"):
             self.broadcast_consumer.register_callback(self.receive_message)
-            self.task_consumer.iterconsume()
-            self.broadcast_consumer.iterconsume()
+            self.task_consumer.consume()
+            self.broadcast_consumer.consume()
             return self._mainloop
         else:
             self.task_consumer.add_consumer(self.broadcast_consumer)

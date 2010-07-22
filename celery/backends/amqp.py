@@ -84,6 +84,9 @@ class AMQPBackend(BaseDictBackend):
                 "traceback": traceback}
 
         self._create_producer(task_id).publish(meta)
+        # Kombu pika backend needs to flush buffer here.
+        # Need to find a better way to flush the buffer!!!
+        self.channel_close() # FIXME FIXME FIXME
 
         return result
 
@@ -150,6 +153,11 @@ class AMQPBackend(BaseDictBackend):
             self._channel.close()
         if self._connection is not None:
             self._connection.close()
+
+    def channel_close(self):
+        if self._channel is not None:
+            self._channel.close()
+            self._channel = None
 
     @property
     def connection(self):
