@@ -22,11 +22,6 @@ up and running.
 
   Both the task consumer and the broadcast consumer uses the same
   callback: :meth:`~CarrotListener.receive_message`.
-  The reason is that some kombu backends doesn't support consuming
-  from several channels simultaneously, so we use a little nasty trick
-  (:meth:`~CarrotListener._detect_wait_method`) to select the best
-  possible channel distribution depending on the functionality supported
-  by the kombu backend.
 
 * So for each message received the :meth:`~CarrotListener.receive_message`
   method is called, this checks the payload of the message for either
@@ -83,7 +78,7 @@ from datetime import datetime
 from dateutil.parser import parse as parse_iso8601
 
 from celery import conf
-from celery.utils import noop, retry_over_time
+from celery.utils import noop
 from celery.worker.job import TaskRequest, InvalidTaskError
 from celery.worker.control import ControlDispatch
 from celery.worker.heartbeat import Heart
@@ -241,7 +236,7 @@ class CarrotListener(object):
     def consume_messages(self):
         """Consume messages forever (or until an exception is raised)."""
         self.logger.debug("CarrotListener: Starting message consumer...")
-        wait_for_message = self._detect_wait_method()(limit=None).next
+        wait_for_message = self._mainloop().next
         self.logger.debug("CarrotListener: Ready to accept tasks!")
 
         while 1:
@@ -385,19 +380,12 @@ class CarrotListener(object):
 
         self._state = RUN
 
-    def _mainloop(self, **kwargs):
+    def _mainloop(self):
+        self.broadcast_consumer.register_callback(self.receive_message)
+        self.task_consumer.consume()
+        self.broadcast_consumer.consume()
         while 1:
             yield self.connection.drain_events()
-
-    def _detect_wait_method(self):
-        if hasattr(self.connection.connection, "drain_events"):
-            self.broadcast_consumer.register_callback(self.receive_message)
-            self.task_consumer.consume()
-            self.broadcast_consumer.consume()
-            return self._mainloop
-        else:
-            self.task_consumer.add_consumer(self.broadcast_consumer)
-            return self.task_consumer.iterconsume
 
     def _open_connection(self):
         """Retries connecting to the AMQP broker over time.
@@ -411,19 +399,13 @@ class CarrotListener(object):
             self.logger.error("CarrotListener: Connection Error: %s. " % exc
                      + "Trying again in %d seconds..." % interval)
 
-        def _establish_connection():
-            """Establish a connection to the broker."""
-            conn = establish_connection()
-            conn.connect() # Connection is established lazily, so connect.
-            return conn
+        conn = establish_connection()
 
         if not conf.BROKER_CONNECTION_RETRY:
-            return _establish_connection()
+            return conn.connect()
 
-        conn = retry_over_time(_establish_connection, self.connection_errors,
-                               errback=_connection_error_handler,
-                               max_retries=conf.BROKER_CONNECTION_MAX_RETRIES)
-        return conn
+        return conn.ensure_connection(_connection_error_handler,
+                                      conf.BROKER_CONNECTION_MAX_RETRIES)
 
     def stop(self):
         """Stop consuming.
