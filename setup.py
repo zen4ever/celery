@@ -39,7 +39,7 @@ install_requires.extend([
     "mailer",
     "sqlalchemy",
     "anyjson",
-    "carrot>=0.10.5",
+    "kombu",
     "pyparsing"])
 
 py_version = sys.version_info
