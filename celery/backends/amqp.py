@@ -4,7 +4,7 @@ import time
 
 from datetime import timedelta
 
-from kombu.entity import Exchange, Binding
+from kombu.entity import Exchange, Queue
 from kombu.messaging import Consumer, Producer
 
 from celery import conf
@@ -56,11 +56,11 @@ class AMQPBackend(BaseDictBackend):
 
     def _create_binding(self, task_id):
         name = task_id.replace("-", "")
-        return Binding(name=name,
-                       exchange=self.exchange,
-                       routing_key=name,
-                       durable=self.persistent,
-                       auto_delete=self.auto_delete)
+        return Queue(name=name,
+                     exchange=self.exchange,
+                     routing_key=name,
+                     durable=self.persistent,
+                     auto_delete=self.auto_delete)
 
     def _create_producer(self, task_id):
         binding = self._create_binding(task_id)
