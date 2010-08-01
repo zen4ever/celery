@@ -68,12 +68,17 @@ def apply_async(task, args=None, kwargs=None, countdown=None, eta=None,
     :keyword priority: The task priority, a number between ``0`` and ``9``.
       Defaults to the tasks :attr:`~celery.task.base.Task.priority` attribute.
 
-    :keyword serializer: A string identifying the default serialization
+    :keyword serializer: A string identifying the serialization
       method to use. Defaults to the ``CELERY_TASK_SERIALIZER`` setting.
-      Can be ``pickle`` ``json``, ``yaml``, or any custom serialization
+      Can be ``pickle``, ``json``, ``yaml``, or any custom serialization
       methods that have been registered with
-      :mod:`kombu.serialization.registry`. Defaults to the tasks
+      :data:`kombu.serialization.registry`. Defaults to the tasks
       :attr:`~celery.task.base.Task.serializer` attribute.
+
+    :keyword compression: A string identifying the compression method
+      to use. Defaults to the ``CELERY_MESSAGE_COMPRESSION`` setting.
+      Can be ``zlib``, ``bzip2``, or any custom compression methods
+      that have been registered with :func:`kombu.compression.register`.
 
     **Note**: If the ``CELERY_ALWAYS_EAGER`` setting is set, it will be
     replaced by a local :func:`apply` call instead.
