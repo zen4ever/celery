@@ -11,7 +11,7 @@ from celery.utils import gen_unique_id, fun_takes_kwargs, mattrgetter
 extract_exec_options = mattrgetter("queue", "routing_key", "exchange",
                                    "immediate", "mandatory",
                                    "priority", "serializer",
-                                   "delivery_mode")
+                                   "delivery_mode", "compression")
 
 
 @with_connection

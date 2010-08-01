@@ -17,7 +17,7 @@ from celery.utils.functional import wraps
 
 
 MSG_OPTIONS = ("mandatory", "priority", "immediate",
-               "routing_key", "serializer", "delivery_mode")
+               "routing_key", "serializer", "delivery_mode", "compression")
 
 get_msg_options = mitemgetter(*MSG_OPTIONS)
 extract_msg_options = lambda d: dict(zip(MSG_OPTIONS, get_msg_options(d)))

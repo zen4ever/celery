@@ -44,6 +44,7 @@ _DEFAULTS = {
     "BROKER_CONNECTION_TIMEOUT": 4,
     "BROKER_CONNECTION_RETRY": True,
     "BROKER_CONNECTION_MAX_RETRIES": 100,
+    "CELERY_MESSAGE_COMPRESSION": None,
     "CELERY_ACKS_LATE": False,
     "CELERYD_POOL_PUTLOCKS": True,
     "CELERYD_POOL": "celery.concurrency.processes.TaskPool",
@@ -138,6 +139,7 @@ RESULT_ENGINE_OPTIONS = _get("CELERY_RESULT_ENGINE_OPTIONS")
 # <--- Client                                      <-   --   --- - ----- -- #
 
 MAX_CACHED_RESULTS = _get("CELERY_MAX_CACHED_RESULTS")
+MESSAGE_COMPRESSION = _get("CELERY_MESSAGE_COMPRESSION")
 
 # <--- Worker                                      <-   --   --- - ----- -- #
 
