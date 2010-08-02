@@ -198,7 +198,7 @@ Task options
 * max_retries
 
     The maximum number of attempted retries before giving up.
-    If this is exceeded the :exc`~celery.execptions.MaxRetriesExceeded`
+    If this is exceeded the :exc`~celery.exceptions.MaxRetriesExceeded`
     exception will be raised. Note that you have to retry manually, it's
     not something that happens automatically.
 
@@ -329,7 +329,7 @@ blog/views.py
 .. code-block:: python
 
     from django import forms
-    frmo django.http import HttpResponseRedirect
+    from django.http import HttpResponseRedirect
     from django.template.context import RequestContext
     from django.shortcuts import get_object_or_404, render_to_response
 
@@ -540,12 +540,12 @@ Good:
 
     @task(ignore_result=True)
     def fetch_page(url, callback=None):
-        page = myparser.parse_document(page)
+        page = myhttplib.get(url)
         if callback:
             # The callback may have been serialized with JSON,
             # so best practice is to convert the subtask dict back
             # into a subtask object.
-            subtask(callback).delay(page)
+            subtask(callback).delay(url, page)
 
     @task(ignore_result=True)
     def parse_page(url, page, callback=None):
@@ -644,7 +644,7 @@ re-fetch the article in the task body:
 .. code-block:: python
 
     @task
-    def expand_abbreviations(article_id)
+    def expand_abbreviations(article_id):
         article = Article.objects.get(id=article_id)
         article.body.replace("MyCorp", "My Corporation")
         article.save()

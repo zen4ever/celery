@@ -52,19 +52,26 @@ class TaskPublisher(Publisher):
             _exchanges_declared.add(self.exchange)
 
     def delay_task(self, task_name, task_args=None, task_kwargs=None,
-            countdown=None, eta=None, task_id=None, taskset_id=None, **kwargs):
+            countdown=None, eta=None, task_id=None, taskset_id=None,
+            expires=None, **kwargs):
         """Delay task for execution by the celery nodes."""
 
         task_id = task_id or gen_unique_id()
         task_args = task_args or []
         task_kwargs = task_kwargs or {}
+        now = None
         if countdown: # Convert countdown to ETA.
-            eta = datetime.now() + timedelta(seconds=countdown)
+            now = datetime.now()
+            eta = now + timedelta(seconds=countdown)
 
         if not isinstance(task_args, (list, tuple)):
             raise ValueError("task args must be a list or tuple")
         if not isinstance(task_kwargs, dict):
             raise ValueError("task kwargs must be a dictionary")
+
+        if isinstance(expires, int):
+            now = now or datetime.now()
+            expires = now + timedelta(seconds=expires)
 
         message_data = {
             "task": task_name,
@@ -73,6 +80,7 @@ class TaskPublisher(Publisher):
             "kwargs": task_kwargs or {},
             "retries": kwargs.get("retries", 0),
             "eta": eta and eta.isoformat(),
+            "expires": expires and expires.isoformat(),
         }
 
         if taskset_id:
