@@ -191,7 +191,7 @@ class BroadcastConsumer(Consumer):
 
 def establish_connection(hostname=None, userid=None, password=None,
         virtual_host=None, port=None, ssl=None, insist=None,
-        connect_timeout=None, backend_cls=None):
+        connect_timeout=None, transport=None, **kwargs):
     """Establish a connection to the message broker."""
     if insist is None:
         insist = conf.BROKER_INSIST
@@ -205,9 +205,10 @@ def establish_connection(hostname=None, userid=None, password=None,
                             password or conf.BROKER_PASSWORD,
                             virtual_host or conf.BROKER_VHOST,
                             port or conf.BROKER_PORT,
-                            backend_cls=backend_cls or conf.BROKER_BACKEND,
+                            transport=transport or conf.BROKER_BACKEND,
                             insist=insist, ssl=ssl,
-                            connect_timeout=connect_timeout)
+                            connect_timeout=connect_timeout,
+                            **kwargs)
 
 
 def with_connection(fun):
