@@ -1,4 +1,4 @@
-from mailer import Message, Mailer
+from celery.utils.mailer import Message, Mailer
 
 def mail_admins(subject, message, fail_silently=False):
     """Send a message to the admins in conf.ADMINS."""
